@@ -1,0 +1,80 @@
+1. Tworze bucket w dual-region - EUROPE
+gsutil  mb -c standard -l eur4 gs://week6-aro
+Creating gs://week6-aro/...
+
+2. Access
+gcloud iam service-accounts create svc-access-week6 --display-name=week6-svc
+Created service account [svc-access-week6].
+
+gcloud iam service-accounts keys create key.json --iam-account svc-access-week6@superb-webbing-272319.iam.gserviceaccount.com
+created key [4840dfd1a449dd61561a795f6c06ea05b17006d9] of type [json] as [key.json] for [svc-access-week6@superb-webbing-272319.iam.gserviceaccount.com]
+
+gsutil iam ch serviceAccount:svc-access-week6@superb-webbing-272319.iam.gserviceaccount.com:objectViewer gs://week6-aro
+
+3. Policy
+
+gsutil versioning set on gs://week6-aro
+Enabling versioning for gs://week6-aro/...
+
+
+{
+    "lifecycle": {
+        "rule": [
+            {
+                "action": {
+                    "type": "SetStorageClass",
+                    "storageClass": "NEARLINE"
+                },
+                "condition": {
+                    "age": 60,
+                    "matchesStorageClass": [
+                        "STANDARD", "MULTI_REGIONAL", "DURABLE_REDUCED_AVAILABILITY"
+                    ]
+                }
+            },
+            {
+                "action": {
+                    "type": "Delete"
+                },
+                "condition": {
+                    "age": 90,
+                    "isLive": true
+                }
+            },
+            {
+                "action": {
+                    "type": "Delete"
+                },
+                "condition": {
+                    "age": 10,
+                    "isLive": false
+                }
+            }
+        ]
+    }
+}
+policy.json (END)
+
+
+4. copy files -m:
+gsutil -m cp -r testdatachm gs://week6-aro
+
+\ [964/964 files][ 73.6 MiB/ 73.6 MiB] 100% Done   3.4 MiB/s ETA 00:00:00
+Operation completed over 964 objects/73.6 MiB.
+
+5. Assign policy 
+gsutil lifecycle set policy.json gs://week6-aro
+Setting lifecycle configuration on gs://week6-aro/...
+
+gsutil lifecycle get gs://week6-aro
+{"rule": [{"action": {"storageClass": "NEARLINE", "type": "SetStorageClass"}, "condition": {"age": 60, "matchesStorageClass": ["STANDARD", "MULTI_REGIONAL", "DURABLE_REDUCED_AVAILABILITY"]}}, {"action": {"type": "Delete"}, "condition": {"age": 90, "isLive": true}}, {"action": {"type": "Delete"}, "condition": {"age": 10, "isLive": false}}]}
+
+5.  Share files using signed url
+
+sudo pip install pyopenssl
+gsutil signurl -d 20m key.json gs://week6-aro/testdarachm/*
+
+
+
+
+
